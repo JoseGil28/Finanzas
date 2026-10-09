@@ -1,0 +1,10 @@
+MIS FINANZAS - instrucciones
+
+1. Sube TODOS los archivos de esta carpeta a un hosting gratuito con https
+   (Netlify Drop: arrastra la carpeta; o GitHub Pages).
+2. Abre el enlace en Chrome del Android.
+3. Menu (tres puntos) > Instalar aplicacion / Agregar a pantalla de inicio.
+4. Funciona sin internet despues de abrirla una vez.
+
+Para mover tus datos desde la version anterior:
+Exportar copia en el enlace viejo, abrir el enlace nuevo, pegar el texto y tocar Restaurar.
