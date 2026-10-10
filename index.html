@@ -7,9 +7,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <style>
-:root{--bg:#F1F4F1;--card:#fff;--ink:#16231F;--mut:#5E6D68;--ac:#0F6B5C;--acs:#DCEDE9;--bad:#B4443A;--ln:#D9E0DC;
+:root{--sel:#FFF1CC;--bg:#F1F4F1;--card:#fff;--ink:#16231F;--mut:#5E6D68;--ac:#0F6B5C;--acs:#DCEDE9;--bad:#B4443A;--ln:#D9E0DC;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101815;--card:#18231F;--ink:#E7EFEB;--mut:#93A59E;--ac:#5CC4AE;--acs:#1F3A33;--bad:#E58278;--ln:#2A3A35}}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--sel:#3B3421;--bg:#101815;--card:#18231F;--ink:#E7EFEB;--mut:#93A59E;--ac:#5CC4AE;--acs:#1F3A33;--bad:#E58278;--ln:#2A3A35}}
 *{box-sizing:border-box}[hidden]{display:none!important}html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px}
 main{max-width:520px;margin:0 auto;padding:12px 14px 40px}
@@ -38,6 +38,7 @@ input[type=text].big{font-size:22px;font-weight:800}
 .deb .top{display:grid;grid-template-columns:26px 1fr 28px 28px;gap:8px;align-items:center;margin-bottom:8px}
 .deb .top b.tg{padding:8px 0}.tg{cursor:pointer}.ch{display:inline-block;width:16px;color:var(--ac)}
 .deb .g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.deb.sel{background:var(--sel);border-radius:12px;padding:10px 8px;margin:4px -8px}.row.sel{background:var(--sel);border-radius:10px;padding:8px 6px;margin:0 -6px}.n[data-s]{cursor:pointer}
 .info{color:var(--mut);font-size:13px;margin-top:6px}.info b{color:var(--ink)}
 .due{margin-top:8px;font-size:13px;color:var(--mut)}.due b{color:var(--ink)}.due.bad,.due.bad b{color:var(--bad);font-weight:800}.due.ok{color:var(--ac)}
 .add{display:flex;gap:8px;margin-top:10px}.add input{flex:1;min-width:0}.add button{background:var(--ac);color:var(--bg);padding:0 14px;font-weight:600;white-space:nowrap}
@@ -62,7 +63,7 @@ input[type=text].big{font-size:22px;font-weight:800}
 <div id="bw" hidden><p class="info">Guárdala antes de cambiar de enlace o de teléfono. Para restaurar, pega aquí el texto o elige un archivo y toca Restaurar.</p>
 <textarea id="bk" rows="4" placeholder="Aquí aparece tu copia." style="width:100%;font:inherit;font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px"></textarea>
 <div class="info" id="bm"></div></div></div>
-<p class="info" style="text-align:center">Versión 4 · cada mes es un registro independiente</p>
+<p class="info" style="text-align:center">Versión 5 · cada mes es un registro independiente</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -84,7 +85,7 @@ function mig(o){if(o&&o.months)return o;const N={ver:2,months:{}};if(!o||!Array.
 function load(){try{const n=localStorage.getItem('finanzas_v2');if(n)return JSON.parse(n)}catch(e){}
  try{const o=localStorage.getItem('finanzas_v1');if(o)return mig(JSON.parse(o))}catch(e){}
  return{ver:2,months:{}}}
-let S=load(),LT={tot:0,comp:0,sal:0},M=ym(new Date()),E=null,C=null,O={},CP=false,RC=false;
+let S=load(),SEL={},LT={tot:0,comp:0,sal:0},M=ym(new Date()),E=null,C=null,O={},CP=false,RC=false;
 const save=()=>{try{localStorage.setItem('finanzas_v2',JSON.stringify(S))}catch(e){}};
 function mo(){if(!S.months[M]){S.months[M]=blank();save()}return S.months[M]}
 const num=s=>parseInt(String(s).replace(/\D/g,''))||0;
@@ -120,11 +121,11 @@ function render(){const m=mo(),[y,mm]=M.split('-');
  if(document.activeElement!==$('adi'))$('adi').value=ad?fmt(ad):'';
  let tot=0,pag=0;
  const rowF=f=>{tot+=f.v;if(f.p)pag+=f.v;
-  return `<div class="row ${f.p?'paid':''}"><input type="checkbox" data-p="${f.id}" ${f.p?'checked':''} aria-label="Pagado: ${esc(f.name)}">${E===f.id?`<input type="text" data-r="${f.id}" value="${esc(f.name)}" aria-label="Nombre">`:`<span class="n">${esc(f.name)}</span>`}<input type="text" inputmode="numeric" data-v="${f.id}" value="${f.v?fmt(f.v):''}" placeholder="$ 0" aria-label="Valor de ${esc(f.name)}"><button class="x" data-e="${f.id}" aria-label="Editar nombre de ${esc(f.name)}">${E===f.id?'✓':'✎'}</button><button class="x" data-x="${f.id}" aria-label="Quitar ${esc(f.name)}" ${C===f.id?'style="color:var(--bad);font-weight:800;font-size:13px"':''}>${C===f.id?'Sí':'×'}</button></div>`};
+  return `<div class="row ${f.p?'paid':''} ${SEL[f.id]?'sel':''}"><input type="checkbox" data-p="${f.id}" ${f.p?'checked':''} aria-label="Pagado: ${esc(f.name)}">${E===f.id?`<input type="text" data-r="${f.id}" value="${esc(f.name)}" aria-label="Nombre">`:`<span class="n" data-s="${f.id}">${esc(f.name)}</span>`}<input type="text" inputmode="numeric" data-v="${f.id}" value="${f.v?fmt(f.v):''}" placeholder="$ 0" aria-label="Valor de ${esc(f.name)}"><button class="x" data-e="${f.id}" aria-label="Editar nombre de ${esc(f.name)}">${E===f.id?'✓':'✎'}</button><button class="x" data-x="${f.id}" aria-label="Quitar ${esc(f.name)}" ${C===f.id?'style="color:var(--bad);font-weight:800;font-size:13px"':''}>${C===f.id?'Sí':'×'}</button></div>`};
  const spL=m.fixed.filter(f=>f.grp==='sp'),otL=m.fixed.filter(f=>f.grp!=='sp');
  $('fx').innerHTML=(spL.length?`<div class="grp"><div class="gt">Servicios públicos</div>${spL.map(rowF).join('')}</div>`:'')+(otL.length?`${spL.length?'<div class="gt o">Otros gastos</div>':''}${otL.map(rowF).join('')}`:'')||'<p class="info">Sin gastos fijos.</p>';
  $('db').innerHTML=m.debts.map(d=>{tot+=d.v;if(d.p)pag+=d.v;const r=falta(d),meses=d.v>0?Math.ceil(r/d.v):null;
-  return `<div class="deb"><div class="top"><input type="checkbox" data-p="${d.id}" ${d.p?'checked':''} aria-label="Cuota pagada: ${esc(d.name)}" style="width:22px;height:22px;accent-color:var(--ac)">${E===d.id?`<input type="text" data-r="${d.id}" value="${esc(d.name)}" aria-label="Nombre">`:`<b class="tg" data-o="${d.id}" role="button" tabindex="0" aria-expanded="${!!O[d.id]}"><span class="ch">${O[d.id]?'▾':'▸'}</span>${esc(d.name)}</b>`}<button class="x" data-e="${d.id}" aria-label="Editar nombre de ${esc(d.name)}">${E===d.id?'✓':'✎'}</button><button class="x" data-x="${d.id}" aria-label="Quitar ${esc(d.name)}" ${C===d.id?'style="color:var(--bad);font-weight:800;font-size:13px"':''}>${C===d.id?'Sí':'×'}</button></div>
+  return `<div class="deb ${O[d.id]?'sel':''}"><div class="top"><input type="checkbox" data-p="${d.id}" ${d.p?'checked':''} aria-label="Cuota pagada: ${esc(d.name)}" style="width:22px;height:22px;accent-color:var(--ac)">${E===d.id?`<input type="text" data-r="${d.id}" value="${esc(d.name)}" aria-label="Nombre">`:`<b class="tg" data-o="${d.id}" role="button" tabindex="0" aria-expanded="${!!O[d.id]}"><span class="ch">${O[d.id]?'▾':'▸'}</span>${esc(d.name)}</b>`}<button class="x" data-e="${d.id}" aria-label="Editar nombre de ${esc(d.name)}">${E===d.id?'✓':'✎'}</button><button class="x" data-x="${d.id}" aria-label="Quitar ${esc(d.name)}" ${C===d.id?'style="color:var(--bad);font-weight:800;font-size:13px"':''}>${C===d.id?'Sí':'×'}</button></div>
   ${O[d.id]?'':`<div class="info tg" data-o="${d.id}">Cuota: <b>${fmt(d.v)}</b> · Falta: <b class="${r?'':'neg'}">${fmt(r)}</b>${d.cupo>0?` · Cupo usado: <b class="${pcu(d)>=0.8?'neg':''}">${P1(pcu(d))}</b>`:''}</div>`}<div class="det" ${O[d.id]?'':'hidden'}><div class="g"><div><label class="s">Deuda total</label><input type="text" inputmode="numeric" data-t="${d.id}" value="${d.total?fmt(d.total):''}" placeholder="$ 0"></div>
   <div><label class="s">Cuota del mes</label><input type="text" inputmode="numeric" data-v="${d.id}" value="${d.v?fmt(d.v):''}" placeholder="$ 0"></div></div>
   <div class="g" style="margin-top:8px"><div><label class="s">Fecha de corte (opcional)</label><input type="date" data-dc="${d.id}" value="${d.corteF||''}"></div><div><label class="s">Fecha límite de pago (opcional)</label><input type="date" data-dp="${d.id}" value="${d.pagoF||''}"></div></div>${dueInfo(d)}
@@ -160,6 +161,7 @@ document.addEventListener('change',e=>{const t=e.target,d=t.dataset,m=mo();
  else return;save();render()});
 document.addEventListener('click',e=>{const T=e.target,m=mo(),o=T.closest('[data-o]');
  if(o){const i=o.dataset.o;O[i]=!O[i];C=null;render();return}
+ const sl=T.closest('[data-s]');if(sl){const i=sl.dataset.s;SEL[i]=!SEL[i];C=null;render();return}
  const ac=T.dataset.ac;if(ac){const dd=find(ac),ds=$('cd_'+ac).value.trim(),v=num($('cv_'+ac).value);if(!dd||!v)return;(dd.compras=dd.compras||[]).push({id:nid('c'),desc:ds||'Compra',v});O[ac]=true;save();render();return}
  const xc=T.dataset.xc;if(xc){const[di,ci]=xc.split(':'),dd=find(di);dd.compras=(dd.compras||[]).filter(c=>c.id!==ci);save();render();return}
  const ed=T.dataset.e;
