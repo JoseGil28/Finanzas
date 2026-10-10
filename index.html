@@ -62,7 +62,7 @@ input[type=text].big{font-size:22px;font-weight:800}
 <div id="bw" hidden><p class="info">Guárdala antes de cambiar de enlace o de teléfono. Para restaurar, pega aquí el texto o elige un archivo y toca Restaurar.</p>
 <textarea id="bk" rows="4" placeholder="Aquí aparece tu copia." style="width:100%;font:inherit;font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px"></textarea>
 <div class="info" id="bm"></div></div></div>
-<p class="info" style="text-align:center">Versión 2 · cada mes es un registro independiente</p>
+<p class="info" style="text-align:center">Versión 3 · cada mes es un registro independiente</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -84,7 +84,7 @@ function mig(o){if(o&&o.months)return o;const N={ver:2,months:{}};if(!o||!Array.
 function load(){try{const n=localStorage.getItem('finanzas_v2');if(n)return JSON.parse(n)}catch(e){}
  try{const o=localStorage.getItem('finanzas_v1');if(o)return mig(JSON.parse(o))}catch(e){}
  return{ver:2,months:{}}}
-let S=load(),M=ym(new Date()),E=null,C=null,O={},CP=false,RC=false;
+let S=load(),LT={tot:0,comp:0,sal:0},M=ym(new Date()),E=null,C=null,O={},CP=false,RC=false;
 const save=()=>{try{localStorage.setItem('finanzas_v2',JSON.stringify(S))}catch(e){}};
 function mo(){if(!S.months[M]){S.months[M]=blank();save()}return S.months[M]}
 const num=s=>parseInt(String(s).replace(/\D/g,''))||0;
@@ -92,6 +92,15 @@ const fmt=n=>(n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString('es-CO');
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const find=id=>[...mo().fixed,...mo().debts].find(z=>z.id===id);
 const falta=d=>Math.max(0,d.total-(d.p?d.v:0));
+const cs=d=>(d.compras||[]).reduce((a,c)=>a+c.v,0),pcu=d=>d.cupo>0?(falta(d)+cs(d))/d.cupo:0,P1=x=>(Math.round(x*1000)/10).toString().replace('.',',')+'%';
+function cardSec(d){const c0=cs(d),u=falta(d)+c0,pu=d.cupo>0?u/d.cupo:0;
+ const list=(d.compras||[]).map(c=>`<div class="row" style="grid-template-columns:1fr 100px 28px"><span class="n">${esc(c.desc)}</span><span style="text-align:right">${fmt(c.v)}</span><button class="x" data-xc="${d.id}:${c.id}" aria-label="Quitar compra">×</button></div>`).join('');
+ const est=d.cupo>0?`<div class="info">Compras del mes: <b>${fmt(c0)}</b> · Usado: <b class="${pu>=0.8?'neg':''}">${P1(pu)}</b> del cupo · Disponible: <b class="${d.cupo-u<0?'neg':''}">${fmt(d.cupo-u)}</b></div>`:(c0?`<div class="info">Compras del mes: <b>${fmt(c0)}</b></div>`:'');
+ return `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--ln)"><label class="s">Cupo del crédito o monto de la tarjeta (opcional)</label><input type="text" inputmode="numeric" data-cu="${d.id}" value="${d.cupo?fmt(d.cupo):''}" placeholder="$ 0">
+ <div class="gt" style="margin-top:10px">Compras y movimientos del mes</div>${list}
+ <div class="add"><input type="text" id="cd_${d.id}" placeholder="Descripción" aria-label="Descripción de la compra"><input type="text" inputmode="numeric" id="cv_${d.id}" data-sim="${d.id}" placeholder="$ monto" aria-label="Monto de la compra" style="max-width:110px"><button data-ac="${d.id}">Agregar</button></div>
+ <div class="info" id="sim_${d.id}"></div>${est}</div>`}
+
 function dueInfo(d){if(!d.pagoF)return d.corteF?'<div class="due">Agrega la fecha límite de pago para calcular el margen.</div>':'';
  const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)},f=x=>x.toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'});
  const due=pd(d.pagoF),cut=d.corteF?pd(d.corteF):null,t=new Date();t.setHours(0,0,0,0);
@@ -114,10 +123,10 @@ function render(){const m=mo(),[y,mm]=M.split('-');
  $('fx').innerHTML=(spL.length?`<div class="grp"><div class="gt">Servicios públicos</div>${spL.map(rowF).join('')}</div>`:'')+(otL.length?`${spL.length?'<div class="gt o">Otros gastos</div>':''}${otL.map(rowF).join('')}`:'')||'<p class="info">Sin gastos fijos.</p>';
  $('db').innerHTML=m.debts.map(d=>{tot+=d.v;if(d.p)pag+=d.v;const r=falta(d),meses=d.v>0?Math.ceil(r/d.v):null;
   return `<div class="deb"><div class="top"><input type="checkbox" data-p="${d.id}" ${d.p?'checked':''} aria-label="Cuota pagada: ${esc(d.name)}" style="width:22px;height:22px;accent-color:var(--ac)">${E===d.id?`<input type="text" data-r="${d.id}" value="${esc(d.name)}" aria-label="Nombre">`:`<b class="tg" data-o="${d.id}" role="button" tabindex="0" aria-expanded="${!!O[d.id]}"><span class="ch">${O[d.id]?'▾':'▸'}</span>${esc(d.name)}</b>`}<button class="x" data-e="${d.id}" aria-label="Editar nombre de ${esc(d.name)}">${E===d.id?'✓':'✎'}</button><button class="x" data-x="${d.id}" aria-label="Quitar ${esc(d.name)}" ${C===d.id?'style="color:var(--bad);font-weight:800;font-size:13px"':''}>${C===d.id?'Sí':'×'}</button></div>
-  ${O[d.id]?'':`<div class="info tg" data-o="${d.id}">Cuota: <b>${fmt(d.v)}</b> · Falta: <b class="${r?'':'neg'}">${fmt(r)}</b></div>`}<div class="det" ${O[d.id]?'':'hidden'}><div class="g"><div><label class="s">Deuda total</label><input type="text" inputmode="numeric" data-t="${d.id}" value="${d.total?fmt(d.total):''}" placeholder="$ 0"></div>
+  ${O[d.id]?'':`<div class="info tg" data-o="${d.id}">Cuota: <b>${fmt(d.v)}</b> · Falta: <b class="${r?'':'neg'}">${fmt(r)}</b>${d.cupo>0?` · Cupo usado: <b class="${pcu(d)>=0.8?'neg':''}">${P1(pcu(d))}</b>`:''}</div>`}<div class="det" ${O[d.id]?'':'hidden'}><div class="g"><div><label class="s">Deuda total</label><input type="text" inputmode="numeric" data-t="${d.id}" value="${d.total?fmt(d.total):''}" placeholder="$ 0"></div>
   <div><label class="s">Cuota del mes</label><input type="text" inputmode="numeric" data-v="${d.id}" value="${d.v?fmt(d.v):''}" placeholder="$ 0"></div></div>
   <div class="g" style="margin-top:8px"><div><label class="s">Fecha de corte (opcional)</label><input type="date" data-dc="${d.id}" value="${d.corteF||''}"></div><div><label class="s">Fecha límite de pago (opcional)</label><input type="date" data-dp="${d.id}" value="${d.pagoF||''}"></div></div>${dueInfo(d)}
-  <div class="info">Falta para saldar: <b class="${r?'':'neg'}">${fmt(r)}</b>${meses?` · aprox. <b>${meses}</b> ${meses==1?'cuota':'cuotas'}`:''}</div></div></div>`}).join('')||'<p class="info">Sin obligaciones.</p>';
+  <div class="info">Falta para saldar: <b class="${r?'':'neg'}">${fmt(r)}</b>${meses?` · aprox. <b>${meses}</b> ${meses==1?'cuota':'cuotas'}`:''}</div>${cardSec(d)}</div></div>`}).join('')||'<p class="info">Sin obligaciones.</p>';
  const deuda=m.debts.reduce((a,d)=>a+falta(d),0),totDeb=m.debts.reduce((a,d)=>a+d.v,0),pagDeb=m.debts.reduce((a,d)=>a+(d.p?d.v:0),0),pagFix=pag-pagDeb;
  const pc=x=>sal>0?(Math.round(x/sal*1000)/10).toString().replace('.',',')+'%':'—',lim=sal*0.35,over=tot-sal;
  $('pf').textContent=pc(pagFix)+' del ingreso pagado';$('pd').textContent=pc(pagDeb)+' del ingreso pagado';
@@ -125,10 +134,14 @@ function render(){const m=mo(),[y,mm]=M.split('-');
  if(sal<=0&&tot>0)alerta='<div class="full al">⚠ Registra tu ingreso para calcular el porcentaje de tus pagos.</div>';
  else if(over>0)alerta=`<div class="full al">⚠ ALERTA: tus pagos superan tu ingreso total por ${fmt(over)}</div>`;
  if(sal>0&&totDeb>lim)alerta+=`<div class="full al">⚠ Tus obligaciones son el ${pc(totDeb)} de tu ingreso, por encima del 35% sugerido. Te pasas por ${fmt(totDeb-lim)}</div>`;
+ const comp=m.debts.reduce((a,d)=>a+cs(d),0);
+ if(sal>0&&over<=0&&comp>0&&tot+comp>sal)alerta+=`<div class="full al">⚠ Tus pagos más las compras con tarjeta (${fmt(comp)}) superan tu ingreso total por ${fmt(tot+comp-sal)}</div>`;
+ m.debts.forEach(d=>{if(d.cupo>0){const p=pcu(d);if(p>1)alerta+=`<div class="full al">⚠ ${esc(d.name)}: excedes el cupo por ${fmt(falta(d)+cs(d)-d.cupo)}</div>`;else if(p>=0.8)alerta+=`<div class="full al">⚠ ${esc(d.name)}: ya usas el ${P1(p)} del cupo</div>`}});
+ LT={tot,comp,sal};
  $('res').innerHTML=`<div class="full"><small>Ingreso total (ingreso + adicionales)</small><strong>${fmt(sal)}</strong></div>${alerta}<div class="full"><small>Porcentaje de tu ingreso que se va en pagos</small><strong class="${over>0?'neg':''}">${pc(tot)}</strong><div style="height:8px;padding:0;margin:6px 0;border-radius:6px;background:var(--ln);overflow:hidden"><div style="height:100%;padding:0;border-radius:0;width:${Math.min(100,sal>0?tot/sal*100:0)}%;background:${over>0?'var(--bad)':'var(--ac)'}"></div></div><small>Gastos fijos ${pc(tot-totDeb)} · Obligaciones ${pc(totDeb)}</small></div>
  <div><small>Total a pagar</small><strong>${fmt(tot)}</strong></div><div><small>Ya pagado</small><strong>${fmt(pag)}</strong></div>
  <div><small>Queda si pagas todo</small><strong class="${sal-tot<0?'neg':''}">${fmt(sal-tot)}</strong></div><div><small>Queda hoy</small><strong class="${sal-pag<0?'neg':''}">${fmt(sal-pag)}</strong></div>
- <div class="full"><small>Máximo sugerido en obligaciones (35% del ingreso)</small><strong>${fmt(lim)}</strong><small class="${totDeb>lim?'neg':''}">${sal<=0?'Registra tu ingreso para calcularlo':totDeb<=lim?`Te queda margen de ${fmt(lim-totDeb)} para obligaciones`:`Te pasas por ${fmt(totDeb-lim)}`}</small></div>
+ ${comp>0?`<div><small>Compras con tarjeta</small><strong>${fmt(comp)}</strong></div><div><small>Queda tras pagos y compras</small><strong class="${sal-tot-comp<0?'neg':''}">${fmt(sal-tot-comp)}</strong></div>`:''}<div class="full"><small>Máximo sugerido en obligaciones (35% del ingreso)</small><strong>${fmt(lim)}</strong><small class="${totDeb>lim?'neg':''}">${sal<=0?'Registra tu ingreso para calcularlo':totDeb<=lim?`Te queda margen de ${fmt(lim-totDeb)} para obligaciones`:`Te pasas por ${fmt(totDeb-lim)}`}</small></div>
  <div class="full"><small>Deuda total restante</small><strong>${fmt(deuda)}</strong></div>`;
  if(E){const i=document.querySelector('[data-r="'+E+'"]');if(i){i.focus();i.select()}}}
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset,m=mo();
@@ -136,16 +149,23 @@ document.addEventListener('change',e=>{const t=e.target,d=t.dataset,m=mo();
  else if(d.p)find(d.p).p=t.checked;
  else if(d.v)find(d.v).v=num(t.value);
  else if(d.t)find(d.t).total=num(t.value);
- else if(d.dc)find(d.dc).corteF=t.value;else if(d.dp)find(d.dp).pagoF=t.value;
+ else if(d.cu)find(d.cu).cupo=num(t.value);else if(d.dc)find(d.dc).corteF=t.value;else if(d.dp)find(d.dp).pagoF=t.value;
  else if(d.r){const it=find(d.r);if(it&&t.value.trim())it.name=t.value.trim();E=null}
  else return;save();render()});
 document.addEventListener('click',e=>{const T=e.target,m=mo(),o=T.closest('[data-o]');
  if(o){const i=o.dataset.o;O[i]=!O[i];C=null;render();return}
+ const ac=T.dataset.ac;if(ac){const dd=find(ac),ds=$('cd_'+ac).value.trim(),v=num($('cv_'+ac).value);if(!dd||!v)return;(dd.compras=dd.compras||[]).push({id:nid('c'),desc:ds||'Compra',v});O[ac]=true;save();render();return}
+ const xc=T.dataset.xc;if(xc){const[di,ci]=xc.split(':'),dd=find(di);dd.compras=(dd.compras||[]).filter(c=>c.id!==ci);save();render();return}
  const ed=T.dataset.e;
  if(ed){if(E===ed){const inp=document.querySelector('[data-r="'+ed+'"]');if(inp&&inp.value.trim())find(ed).name=inp.value.trim();E=null;save()}else{E=ed;C=null}render();return}
  const x=T.dataset.x;if(!x){if(C){C=null;render()}return}
  if(C!==x){C=x;E=null;render();return}
  C=null;m.fixed=m.fixed.filter(f=>f.id!==x);m.debts=m.debts.filter(f=>f.id!==x);save();render()});
+document.addEventListener('input',e=>{const t=e.target,id=t.dataset&&t.dataset.sim;if(!id)return;const d=find(id),el=$('sim_'+id),v=num(t.value);
+ if(!d||!v){if(el)el.textContent='';return}
+ const msg=[];if(d.cupo>0){const u=falta(d)+cs(d)+v;msg.push(u>d.cupo?`⚠ Excederías el cupo por ${fmt(u-d.cupo)}`:`Con esta compra usarías ${P1(u/d.cupo)} del cupo (disponible ${fmt(d.cupo-u)})`)}
+ if(LT.sal>0&&LT.tot+LT.comp+v>LT.sal)msg.push(`⚠ Tus pagos y compras superarían tu ingreso total por ${fmt(LT.tot+LT.comp+v-LT.sal)}`);
+ const bad=msg.some(x=>x.startsWith('⚠'));el.style.color=bad?'var(--bad)':'';el.style.fontWeight=bad?'800':'';el.textContent=msg.join(' · ')||'Registra el cupo para calcular el porcentaje.'});
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset&&e.target.dataset.o){e.preventDefault();e.target.click()}});
 $('af').onclick=()=>{const n=$('nf').value.trim();if(!n)return;mo().fixed.push({id:nid('f'),name:n,grp:$('ng').value,v:0,p:false});$('nf').value='';save();render()};
 $('ad').onclick=()=>{const n=$('nd').value.trim();if(!n)return;const id=nid('d');mo().debts.push({id,name:n,total:0,v:0,p:false,corteF:'',pagoF:''});O[id]=true;$('nd').value='';save();render()};
@@ -156,7 +176,7 @@ $('cp').onclick=()=>{const p=S.months[prevM()];if(!p){$('cpm').textContent='No h
  $('cpm').textContent='';
  if(!CP){CP=true;$('cp').textContent='¿Seguro? Reemplaza los datos de este mes. Toca otra vez';return}
  CP=false;$('cp').textContent=CPT;
- S.months[M]={sal:p.sal,add:0,fixed:p.fixed.map(f=>({...f,id:nid('f'),p:false})),debts:p.debts.map(d=>({...d,id:nid('d'),p:false,total:falta(d),corteF:sd(d.corteF),pagoF:sd(d.pagoF)}))};
+ S.months[M]={sal:p.sal,add:0,fixed:p.fixed.map(f=>({...f,id:nid('f'),p:false})),debts:p.debts.map(d=>({...d,id:nid('d'),p:false,total:falta(d)+cs(d),compras:[],corteF:sd(d.corteF),pagoF:sd(d.pagoF)}))};
  $('cpm').textContent='Datos copiados. Ajusta los montos de este mes.';save();render()};
 const shift=n=>{const[y,m]=M.split('-');M=ym(new Date(y,m-1+n,1));E=null;C=null;CP=false;$('cp').textContent=CPT;$('cpm').textContent='';render()};
 $('prev').onclick=()=>shift(-1);$('next').onclick=()=>shift(1);
