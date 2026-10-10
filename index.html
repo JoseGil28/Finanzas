@@ -62,7 +62,7 @@ input[type=text].big{font-size:22px;font-weight:800}
 <div id="bw" hidden><p class="info">Guárdala antes de cambiar de enlace o de teléfono. Para restaurar, pega aquí el texto o elige un archivo y toca Restaurar.</p>
 <textarea id="bk" rows="4" placeholder="Aquí aparece tu copia." style="width:100%;font:inherit;font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px"></textarea>
 <div class="info" id="bm"></div></div></div>
-<p class="info" style="text-align:center">Versión 3 · cada mes es un registro independiente</p>
+<p class="info" style="text-align:center">Versión 4 · cada mes es un registro independiente</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -93,10 +93,12 @@ const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&qu
 const find=id=>[...mo().fixed,...mo().debts].find(z=>z.id===id);
 const falta=d=>Math.max(0,d.total-(d.p?d.v:0));
 const cs=d=>(d.compras||[]).reduce((a,c)=>a+c.v,0),pcu=d=>d.cupo>0?(falta(d)+cs(d))/d.cupo:0,P1=x=>(Math.round(x*1000)/10).toString().replace('.',',')+'%';
+function barHtml(a,b,c){const w1=Math.min(100,a/c*100),w2=Math.min(100-w1,b/c*100),hot=(a+b)/c>=0.8,col=hot?'var(--bad)':'#D9A21B',z='padding:0;background:none;border-radius:0;';
+ return `<div style="position:relative;height:16px;padding:0;border-radius:8px;background:var(--ln);overflow:hidden;margin:8px 0 2px"><div style="position:absolute;left:0;top:0;bottom:0;width:${w1}%;padding:0;border-radius:0;background:var(--ac)"></div><div style="position:absolute;left:${w1}%;top:0;bottom:0;width:${w2}%;padding:0;border-radius:0;background:${col}"></div><div style="position:absolute;left:80%;top:0;bottom:0;width:2px;padding:0;border-radius:0;background:var(--ink)"></div></div><div style="position:relative;height:14px;font-size:11px;color:var(--mut);${z}"><span style="position:absolute;left:0">0%</span><span style="position:absolute;left:80%;transform:translateX(-50%)">80%</span><span style="position:absolute;right:0">100%</span></div><div style="font-size:12px;color:var(--mut);${z}"><span style="color:var(--ac)">■</span> Pendiente ${P1(a/c)} · <span style="color:${col}">■</span> Compras ${P1(b/c)}</div>`}
 function cardSec(d){const c0=cs(d),u=falta(d)+c0,pu=d.cupo>0?u/d.cupo:0;
  const list=(d.compras||[]).map(c=>`<div class="row" style="grid-template-columns:1fr 100px 28px"><span class="n">${esc(c.desc)}</span><span style="text-align:right">${fmt(c.v)}</span><button class="x" data-xc="${d.id}:${c.id}" aria-label="Quitar compra">×</button></div>`).join('');
  const est=d.cupo>0?`<div class="info">Compras del mes: <b>${fmt(c0)}</b> · Usado: <b class="${pu>=0.8?'neg':''}">${P1(pu)}</b> del cupo · Disponible: <b class="${d.cupo-u<0?'neg':''}">${fmt(d.cupo-u)}</b></div>`:(c0?`<div class="info">Compras del mes: <b>${fmt(c0)}</b></div>`:'');
- return `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--ln)"><label class="s">Cupo del crédito o monto de la tarjeta (opcional)</label><input type="text" inputmode="numeric" data-cu="${d.id}" value="${d.cupo?fmt(d.cupo):''}" placeholder="$ 0">
+ return `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--ln)"><label class="s">Cupo del crédito o monto de la tarjeta (opcional)</label><input type="text" inputmode="numeric" data-cu="${d.id}" value="${d.cupo?fmt(d.cupo):''}" placeholder="$ 0">${d.cupo>0?barHtml(falta(d),c0,d.cupo)+`<div class="info" id="lim_${d.id}"></div>`:''}
  <div class="gt" style="margin-top:10px">Compras y movimientos del mes</div>${list}
  <div class="add"><input type="text" id="cd_${d.id}" placeholder="Descripción" aria-label="Descripción de la compra"><input type="text" inputmode="numeric" id="cv_${d.id}" data-sim="${d.id}" placeholder="$ monto" aria-label="Monto de la compra" style="max-width:110px"><button data-ac="${d.id}">Agregar</button></div>
  <div class="info" id="sim_${d.id}"></div>${est}</div>`}
@@ -138,10 +140,14 @@ function render(){const m=mo(),[y,mm]=M.split('-');
  if(sal>0&&over<=0&&comp>0&&tot+comp>sal)alerta+=`<div class="full al">⚠ Tus pagos más las compras con tarjeta (${fmt(comp)}) superan tu ingreso total por ${fmt(tot+comp-sal)}</div>`;
  m.debts.forEach(d=>{if(d.cupo>0){const p=pcu(d);if(p>1)alerta+=`<div class="full al">⚠ ${esc(d.name)}: excedes el cupo por ${fmt(falta(d)+cs(d)-d.cupo)}</div>`;else if(p>=0.8)alerta+=`<div class="full al">⚠ ${esc(d.name)}: ya usas el ${P1(p)} del cupo</div>`}});
  LT={tot,comp,sal};
+ m.debts.forEach(d=>{const el=$('lim_'+d.id);if(!el||!(d.cupo>0))return;const u=falta(d)+cs(d),p80=Math.max(0,d.cupo*0.8-u),cap=sal>0?Math.max(0,sal-tot-comp):null,tope=cap===null?p80:Math.min(p80,cap);
+  el.innerHTML=`Tope para nuevas compras: <b class="${tope<=0?'neg':''}">${fmt(tope)}</b><br>Hasta el 80% del cupo: ${fmt(p80)}${cap===null?' · Registra tu ingreso para considerar tus ingresos':` · Según tu ingreso: ${fmt(cap)}`}`});
+ const cd=m.debts.filter(d=>d.cupo>0),tc=cd.reduce((a,d)=>a+d.cupo,0),tu=cd.reduce((a,d)=>a+falta(d)+cs(d),0),tcm=cd.reduce((a,d)=>a+cs(d),0);
+ const cardsBar=cd.length>1?`<div class="full"><small>Uso de todas tus tarjetas (${cd.length} con cupo registrado)</small><strong class="${tu/tc>=0.8?'neg':''}">${P1(tu/tc)}</strong> <small style="display:inline">de ${fmt(tc)}</small>${barHtml(tu-tcm,tcm,tc)}</div>`:'';
  $('res').innerHTML=`<div class="full"><small>Ingreso total (ingreso + adicionales)</small><strong>${fmt(sal)}</strong></div>${alerta}<div class="full"><small>Porcentaje de tu ingreso que se va en pagos</small><strong class="${over>0?'neg':''}">${pc(tot)}</strong><div style="height:8px;padding:0;margin:6px 0;border-radius:6px;background:var(--ln);overflow:hidden"><div style="height:100%;padding:0;border-radius:0;width:${Math.min(100,sal>0?tot/sal*100:0)}%;background:${over>0?'var(--bad)':'var(--ac)'}"></div></div><small>Gastos fijos ${pc(tot-totDeb)} · Obligaciones ${pc(totDeb)}</small></div>
  <div><small>Total a pagar</small><strong>${fmt(tot)}</strong></div><div><small>Ya pagado</small><strong>${fmt(pag)}</strong></div>
  <div><small>Queda si pagas todo</small><strong class="${sal-tot<0?'neg':''}">${fmt(sal-tot)}</strong></div><div><small>Queda hoy</small><strong class="${sal-pag<0?'neg':''}">${fmt(sal-pag)}</strong></div>
- ${comp>0?`<div><small>Compras con tarjeta</small><strong>${fmt(comp)}</strong></div><div><small>Queda tras pagos y compras</small><strong class="${sal-tot-comp<0?'neg':''}">${fmt(sal-tot-comp)}</strong></div>`:''}<div class="full"><small>Máximo sugerido en obligaciones (35% del ingreso)</small><strong>${fmt(lim)}</strong><small class="${totDeb>lim?'neg':''}">${sal<=0?'Registra tu ingreso para calcularlo':totDeb<=lim?`Te queda margen de ${fmt(lim-totDeb)} para obligaciones`:`Te pasas por ${fmt(totDeb-lim)}`}</small></div>
+ ${comp>0?`<div><small>Compras con tarjeta</small><strong>${fmt(comp)}</strong></div><div><small>Queda tras pagos y compras</small><strong class="${sal-tot-comp<0?'neg':''}">${fmt(sal-tot-comp)}</strong></div>`:''}${cardsBar}<div class="full"><small>Máximo sugerido en obligaciones (35% del ingreso)</small><strong>${fmt(lim)}</strong><small class="${totDeb>lim?'neg':''}">${sal<=0?'Registra tu ingreso para calcularlo':totDeb<=lim?`Te queda margen de ${fmt(lim-totDeb)} para obligaciones`:`Te pasas por ${fmt(totDeb-lim)}`}</small></div>
  <div class="full"><small>Deuda total restante</small><strong>${fmt(deuda)}</strong></div>`;
  if(E){const i=document.querySelector('[data-r="'+E+'"]');if(i){i.focus();i.select()}}}
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset,m=mo();
