@@ -43,6 +43,9 @@ input[type=text].big{font-size:22px;font-weight:800}
 .due{margin-top:8px;font-size:13px;color:var(--mut)}.due b{color:var(--ink)}.due.bad,.due.bad b{color:var(--bad);font-weight:800}.due.ok{color:var(--ac)}
 .add{display:flex;gap:8px;margin-top:10px}.add input{flex:1;min-width:0}.add button{background:var(--ac);color:var(--bg);padding:0 14px;font-weight:600;white-space:nowrap}
 .add.bk{margin:0}.add.bk button{padding:10px 8px;flex:1}
+.lg{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 8px;font-size:12px;color:var(--mut)}.lg span{display:flex;align-items:center;gap:4px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.rw{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--ln);font-size:14px}.rw:first-child{border-top:0}.rw .l{display:flex;align-items:center;gap:8px}
 .tgl{background:var(--acs);color:var(--ac);font-size:12px;font-weight:600;padding:5px 10px;margin-left:6px}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 </style></head><body><main>
@@ -57,13 +60,19 @@ input[type=text].big{font-size:22px;font-weight:800}
 <div class="add"><input type="text" id="nf" placeholder="Nuevo gasto fijo" aria-label="Nombre del nuevo gasto fijo"><select id="ng" aria-label="Grupo" style="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;max-width:118px"><option value="ot">Otros</option><option value="sp">Serv. públicos</option></select><button id="af">Agregar</button></div></div>
 <div class="card"><h2>Obligaciones <span class="pct" id="pd"></span></h2><div id="db"></div>
 <div class="add"><input type="text" id="nd" placeholder="Nueva obligación" aria-label="Nombre de la nueva obligación"><button id="ad">Agregar</button></div></div>
+<div class="card"><h2>Gráficas <span class="pct" id="gm"></span></h2>
+<div id="ch1"></div><div id="rw1" style="margin-top:8px"></div>
+<button class="cp" id="tg" style="margin-top:12px">Ver resumen anual</button>
+<div id="ya" hidden><div class="mes" style="margin:8px 0 4px"><button class="nav" id="py" aria-label="Año anterior">‹</button><b id="yt"></b><button class="nav" id="ny" aria-label="Año siguiente">›</button></div>
+<div class="lg"><span><i class="sw" style="background:#1baf7a"></i>Ingreso total</span><span><i class="sw" style="background:#2a78d6"></i>Gastos fijos</span><span><i class="sw" style="background:#eb6834"></i>Obligaciones</span></div>
+<div id="ch2"></div><div id="rw2" style="margin-top:8px"></div></div></div>
 <div class="card"><h2>Copia de seguridad <button class="tgl" id="bt" aria-expanded="false">▸ Ver texto</button></h2>
 <div class="add bk"><button id="bx">Exportar</button><button id="bi">Elegir archivo</button><button id="br">Restaurar</button></div>
 <input type="file" id="bf" accept=".json,application/json" hidden>
 <div id="bw" hidden><p class="info">Guárdala antes de cambiar de enlace o de teléfono. Para restaurar, pega aquí el texto o elige un archivo y toca Restaurar.</p>
 <textarea id="bk" rows="4" placeholder="Aquí aparece tu copia." style="width:100%;font:inherit;font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px"></textarea>
 <div class="info" id="bm"></div></div></div>
-<p class="info" style="text-align:center">Versión 6 · cada mes es un registro independiente</p>
+<p class="info" style="text-align:center">Versión 7 · cada mes es un registro independiente</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -150,7 +159,7 @@ function render(){const m=mo(),[y,mm]=M.split('-');
  <div><small>Queda si pagas todo</small><strong class="${sal-tot<0?'neg':''}">${fmt(sal-tot)}</strong></div><div><small>Queda hoy</small><strong class="${sal-pag<0?'neg':''}">${fmt(sal-pag)}</strong></div>
  ${comp>0?`<div><small>Compras con tarjeta</small><strong>${fmt(comp)}</strong></div><div><small>Queda tras pagos y compras</small><strong class="${sal-tot-comp<0?'neg':''}">${fmt(sal-tot-comp)}</strong></div>`:''}${cardsBar}<div class="full"><small>Máximo sugerido en obligaciones (35% del ingreso)</small><strong>${fmt(lim)}</strong><small class="${totDeb>lim?'neg':''}">${sal<=0?'Registra tu ingreso para calcularlo':totDeb<=lim?`Te queda margen de ${fmt(lim-totDeb)} para obligaciones`:`Te pasas por ${fmt(totDeb-lim)}`}</small></div>
  <div class="full"><small>Deuda total restante</small><strong>${fmt(deuda)}</strong></div>`;
- if(E){const i=document.querySelector('[data-r="'+E+'"]');if(i){i.focus();i.select()}}}
+ if(E){const i=document.querySelector('[data-r="'+E+'"]');if(i){i.focus();i.select()}}renderCharts()}
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset,m=mo();
  if(t.id==='sal')m.sal=num(t.value);else if(t.id==='adi')m.add=num(t.value);
  else if(d.p)find(d.p).p=t.checked;
@@ -160,6 +169,7 @@ document.addEventListener('change',e=>{const t=e.target,d=t.dataset,m=mo();
  else if(d.r){const it=find(d.r);if(it&&t.value.trim())it.name=t.value.trim();E=null}
  else return;save();render()});
 document.addEventListener('click',e=>{const T=e.target,m=mo(),o=T.closest('[data-o]');
+ const am=T.closest('[data-am]');if(am){SM=+am.dataset.am;renderCharts();return}
  if(o){const i=o.dataset.o;O[i]=!O[i];C=null;render();return}
  const sl=T.closest('[data-s]');if(sl){const i=sl.dataset.s;SEL[i]=!SEL[i];C=null;render();return}
  const ac=T.dataset.ac;if(ac){const dd=find(ac),ds=$('cd_'+ac).value.trim(),v=num($('cv_'+ac).value);if(!dd||!v)return;(dd.compras=dd.compras||[]).push({id:nid('c'),desc:ds||'Compra',v});O[ac]=true;save();render();return}
@@ -200,6 +210,43 @@ $('br').onclick=()=>{let raw,o;try{raw=JSON.parse($('bk').value);o=mig(raw)}catc
  if(!raw||(!raw.months&&!Array.isArray(raw.fixed))){bm('El texto no es una copia válida.');return}
  if(!RC){RC=true;$('br').textContent='¿Seguro?';bm('Esto reemplaza tus datos actuales. Toca de nuevo para confirmar.');return}
  RC=false;$('br').textContent='Restaurar';S=o;save();bm('Copia restaurada.');render()};
+const CC=['#1baf7a','#2a78d6','#eb6834'],CN=['Ingreso total','Gastos fijos','Obligaciones'],LB=[['Ingreso','total'],['Gastos','fijos'],['Obligaciones']],MS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let SHOWY=false,YA=null,SM=null;
+const P2=x=>(Math.round(x*10)/10).toString().replace('.',',')+'%';
+const axMax=a=>Math.max(5e6,Math.ceil(Math.max(0,...a)/1e6)*1e6);
+function gridS(mx,L,R,T,H,W){let s='';for(let v=0;v<=mx;v+=1e6){const y=T+H-v/mx*H;s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" style="stroke:var(--ln)" stroke-width="1"/><text x="${L-6}" y="${y+4}" text-anchor="end" font-size="11" style="fill:var(--mut)">${v===0?'$0':'$'+(v/1e6)+' M'}</text>`}return s}
+function barP(x,y,w,h,c){if(h<=0)return'';const r=Math.min(4,h,w/2);return `<path d="M${x},${y+h}L${x},${y+r}Q${x},${y} ${x+r},${y}L${x+w-r},${y}Q${x+w},${y} ${x+w},${y+r}L${x+w},${y+h}Z" fill="${c}"/>`}
+function chart1(v){const W=340,Ht=300,L=44,R=8,T=26,B=48,PH=Ht-T-B,PW=W-L-R,mx=axMax(v),cw=PW/3,bw=cw-15;
+ let s=`<svg viewBox="0 0 ${W} ${Ht}" width="100%" role="img" aria-label="Columnas de ingreso total, gastos fijos y obligaciones del mes con su porcentaje sobre el ingreso">`+gridS(mx,L,R,T,PH,W);
+ v.forEach((x,i)=>{const hh=x/mx*PH,xx=L+i*cw+(cw-bw)/2,y=T+PH-hh,cx=xx+bw/2;s+=barP(xx,y,bw,hh,CC[i]);
+  s+=`<text x="${cx}" y="${y-6}" text-anchor="middle" font-size="13" font-weight="600" style="fill:var(--ink)">${v[0]>0?P2(x/v[0]*100):'—'}</text>`;
+  LB[i].forEach((t,j)=>{s+=`<text x="${cx}" y="${T+PH+18+j*15}" text-anchor="middle" font-size="12" style="fill:var(--mut)">${t}</text>`})});
+ return s+'</svg>'}
+function yearData(y){return Array.from({length:12},(_,i)=>{const m=S.months[y+'-'+String(i+1).padStart(2,'0')];return m?[(m.sal||0)+(m.add||0),m.fixed.reduce((a,f)=>a+f.v,0),m.debts.reduce((a,d)=>a+d.v,0)]:[0,0,0]})}
+function chart2(d){const W=340,Ht=250,L=44,R=8,T=14,B=30,PH=Ht-T-B,PW=W-L-R,mx=axMax(d.flat()),cw=PW/12,bw=(cw-5)/3;
+ let s=`<svg viewBox="0 0 ${W} ${Ht}" width="100%" role="img" aria-label="Columnas por mes de enero a diciembre con ingreso total, gastos fijos y obligaciones">`+gridS(mx,L,R,T,PH,W);
+ d.forEach((r,m)=>{const x0=L+m*cw+2.5;if(SM===m)s+=`<rect x="${L+m*cw}" y="${T}" width="${cw}" height="${PH}" style="fill:var(--sel)"/>`;
+  r.forEach((x,i)=>{const hh=x/mx*PH;s+=barP(x0+i*bw,T+PH-hh,bw-1,hh,CC[i])});
+  s+=`<text x="${L+m*cw+cw/2}" y="${T+PH+17}" text-anchor="middle" font-size="11" style="fill:var(--mut)">${MS[m]}</text>`});
+ d.forEach((r,m)=>{s+=`<rect data-am="${m}" x="${L+m*cw}" y="${T}" width="${cw}" height="${PH+B}" fill="transparent" style="cursor:pointer"/>`});
+ return s+'</svg>'}
+function rowsH(v,tit){const ing=v[0],pag=v[1]+v[2],over=pag>ing,q=ing-pag;let h=tit?`<div class="rw" style="font-weight:600"><span>${tit}</span><span></span></div>`:'';
+ CN.forEach((n,i)=>{h+=`<div class="rw"><span class="l"><i class="sw" style="background:${CC[i]}"></i>${n}</span><span>${fmt(v[i])} · <b>${ing>0?P2(v[i]/ing*100):'—'}</b></span></div>`});
+ if(ing>0)h+=`<div class="rw ${over?'neg':''}"><span>${over?'Alerta: pagos sobre tu ingreso':'Te quedan'}</span><span>${fmt(Math.abs(q))} · <b>${P2(Math.abs(q)/ing*100)}</b></span></div>`;
+ return h}
+function renderCharts(){const m=mo(),[y,mm]=M.split('-'),v=[(m.sal||0)+(m.add||0),m.fixed.reduce((a,f)=>a+f.v,0),m.debts.reduce((a,d)=>a+d.v,0)];
+ $('gm').textContent=new Date(y,mm-1,1).toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+ $('ch1').innerHTML=chart1(v);$('rw1').innerHTML=rowsH(v,'');
+ $('ya').hidden=!SHOWY;$('tg').textContent=SHOWY?'Ocultar resumen anual':'Ver resumen anual';
+ if(SHOWY)renderYear()}
+function renderYear(){if(YA===null)YA=+M.split('-')[0];const d=yearData(YA);
+ if(SM===null){SM=0;d.forEach((r,i)=>{if(r[0]>0||r[1]>0||r[2]>0)SM=i})}
+ $('yt').textContent=YA;$('ch2').innerHTML=chart2(d);
+ const r=d[SM];$('rw2').innerHTML=(r[0]||r[1]||r[2])?rowsH(r,MS[SM]+' '+YA):`<p class="info">${MS[SM]} ${YA}: sin datos registrados.</p>`}
+$('tg').onclick=()=>{SHOWY=!SHOWY;renderCharts()};
+$('py').onclick=()=>{YA=(YA===null?+M.split('-')[0]:YA)-1;SM=null;renderCharts()};
+$('ny').onclick=()=>{YA=(YA===null?+M.split('-')[0]:YA)+1;SM=null;renderCharts()};
+
 render();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script></body></html>
