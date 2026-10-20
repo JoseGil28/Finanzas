@@ -17,6 +17,14 @@ main{max-width:520px;margin:0 auto;padding:12px 14px 40px}
 .mes b{font-size:20px;font-weight:800;text-transform:capitalize}
 button{font:inherit;cursor:pointer;border:0;border-radius:10px}
 .nav{background:var(--card);color:var(--ink);width:40px;height:40px;font-size:20px;border:1px solid var(--ln)}
+.mesb{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:30;display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px;padding:6px 8px;border-radius:18px;border:1px solid transparent;overflow:hidden;background:var(--bg);background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:box-shadow .2s,border-color .2s,background .2s;touch-action:pan-y}
+.mesb .mc{display:flex;flex-direction:column;align-items:center;min-width:0;text-align:center}
+.mesb b{font-size:20px;font-weight:800;text-transform:capitalize;transition:font-size .2s}
+.mesb small{display:none;font-size:12px;color:var(--mut);line-height:1.2}
+.mesb.stuck{box-shadow:0 8px 22px rgba(0,0,0,.18);border-color:var(--ln);background:var(--card);background:color-mix(in srgb,var(--card) 88%,transparent)}
+.mesb.stuck b{font-size:17px}.mesb.stuck small{display:block}.mesb.stuck .nav{width:36px;height:36px}
+.mbar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--ac);transition:width .35s,background .2s}
+@keyframes pop{0%{transform:scale(.92);opacity:.4}100%{transform:none;opacity:1}}.pop{animation:pop .28s ease}
 .cp{width:100%;background:var(--acs);color:var(--ac);font-weight:600;padding:10px;margin-bottom:6px}
 .card{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:14px;margin-bottom:14px}
 h2{font-size:16px;margin:0 0 10px;font-weight:800}
@@ -50,7 +58,7 @@ input[type=text].big{font-size:22px;font-weight:800}
 .tgl{background:var(--acs);color:var(--ac);font-size:12px;font-weight:600;padding:5px 10px;margin-left:6px}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 </style></head><body><main>
-<div class="mes"><button class="nav" id="prev" aria-label="Mes anterior">‹</button><b id="mes"></b><button class="nav" id="next" aria-label="Mes siguiente">›</button></div>
+<div class="mesb" id="mesb"><button class="nav" id="prev" aria-label="Mes anterior">‹</button><div class="mc"><b id="mes"></b><small id="mini"></small></div><button class="nav" id="next" aria-label="Mes siguiente">›</button><i class="mbar" id="mbar"></i></div>
 <button class="cp" id="cp">Copiar datos del mes anterior</button><div class="info" id="cpm" style="margin:0 0 10px"></div>
 <div class="card"><label class="s" for="sal">Ingreso</label>
 <input type="text" id="sal" class="big" inputmode="numeric" placeholder="$ 0">
@@ -73,7 +81,7 @@ input[type=text].big{font-size:22px;font-weight:800}
 <div id="bw" hidden><p class="info">Guárdala antes de cambiar de enlace o de teléfono. Para restaurar, pega aquí el texto o elige un archivo y toca Restaurar.</p>
 <textarea id="bk" rows="4" placeholder="Aquí aparece tu copia." style="width:100%;font:inherit;font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px"></textarea>
 <div class="info" id="bm"></div></div></div>
-<p class="info" style="text-align:center">Versión 9 · cada mes es un registro independiente</p>
+<p class="info" style="text-align:center">Versión 10 · cada mes es un registro independiente</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -147,7 +155,8 @@ function render(){const m=mo(),[y,mm]=M.split('-');
   <div class="info">Falta para saldar: <b class="${r?'':'neg'}">${fmt(r)}</b>${meses?` · aprox. <b>${meses}</b> ${meses==1?'cuota':'cuotas'}`:''}</div></fieldset></div></div>`}).join('')||'<p class="info">Sin obligaciones.</p>';
  const deuda=m.debts.reduce((a,d)=>a+falta(d),0),totDeb=m.debts.reduce((a,d)=>a+d.v,0),pagDeb=m.debts.reduce((a,d)=>a+(d.p?d.v:0),0),pagFix=pag-pagDeb;
  const pc=x=>sal>0?(Math.round(x/sal*1000)/10).toString().replace('.',',')+'%':'—',lim=sal*0.35,over=tot-sal;
- $('pf').textContent=pc(pagFix)+' del ingreso pagado';$('pd').textContent=pc(pagDeb)+' del ingreso pagado';
+ $('pf').textContent=pc(pagFix)+' del ingreso pagado';
+ $('mini').textContent=sal>0?`Queda ${fmt(sal-tot)} · ${pc(tot)} en pagos`:'Registra tu ingreso';$('mini').style.color=over>0?'var(--bad)':'';$('mbar').style.width=(sal>0?Math.min(100,tot/sal*100):0)+'%';$('mbar').style.background=over>0?'var(--bad)':'var(--ac)';$('pd').textContent=pc(pagDeb)+' del ingreso pagado';
  let alerta='';
  if(sal<=0&&tot>0)alerta='<div class="full al">⚠ Registra tu ingreso para calcular el porcentaje de tus pagos.</div>';
  else if(over>0)alerta=`<div class="full al">⚠ ALERTA: tus pagos superan tu ingreso total por ${fmt(over)}</div>`;
@@ -203,7 +212,7 @@ $('cp').onclick=()=>{const p=S.months[prevM()];if(!p){$('cpm').textContent='No h
  CP=false;$('cp').textContent=CPT;
  S.months[M]={sal:p.sal,add:0,fixed:p.fixed.map(f=>({...f,id:nid('f'),p:false})),debts:p.debts.map(d=>({...d,id:nid('d'),p:false,lock:false,total:falta(d),compras:[],corteF:sd(d.corteF),pagoF:sd(d.pagoF)}))};
  $('cpm').textContent='Datos copiados. Ajusta los montos de este mes.';save();render()};
-const shift=n=>{const[y,m]=M.split('-');M=ym(new Date(y,m-1+n,1));E=null;C=null;CP=false;$('cp').textContent=CPT;$('cpm').textContent='';render()};
+const shift=n=>{const[y,m]=M.split('-');M=ym(new Date(y,m-1+n,1));E=null;C=null;CP=false;$('cp').textContent=CPT;$('cpm').textContent='';render();const mt=$('mes');mt.classList.remove('pop');void mt.offsetWidth;mt.classList.add('pop')};
 $('prev').onclick=()=>shift(-1);$('next').onclick=()=>shift(1);
 const bo=v=>{$('bw').hidden=!v;$('bt').textContent=v?'▾ Ocultar texto':'▸ Ver texto';$('bt').setAttribute('aria-expanded',v)};
 const bm=t=>{$('bm').textContent=t;bo(true)};
@@ -256,6 +265,10 @@ $('tg').onclick=()=>{SHOWY=!SHOWY;renderCharts()};
 $('py').onclick=()=>{YA=(YA===null?+M.split('-')[0]:YA)-1;SM=null;renderCharts()};
 $('ny').onclick=()=>{YA=(YA===null?+M.split('-')[0]:YA)+1;SM=null;renderCharts()};
 
+let tx=null;const mb=$('mesb');
+mb.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+mb.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(dx)>50)shift(dx<0?1:-1)},{passive:true});
+window.addEventListener('scroll',()=>mb.classList.toggle('stuck',(window.scrollY||document.documentElement.scrollTop)>70),{passive:true});
 save();
 render();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
